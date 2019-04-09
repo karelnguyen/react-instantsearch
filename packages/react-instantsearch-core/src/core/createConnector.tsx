@@ -79,7 +79,7 @@ type ConnectorDescription = {
 
 type ConnectorProps = {
   contextValue: InstantSearchContext;
-  indexContextValue: IndexContext;
+  indexContextValue?: IndexContext;
 };
 
 type ConnectorState = {
