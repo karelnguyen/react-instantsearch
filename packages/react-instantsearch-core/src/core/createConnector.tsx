@@ -72,6 +72,16 @@ export type ConnectorDescription = {
   defaultProps?: {};
 };
 
+type ConnectorProps = {
+  contextValue: InstantSearchContext;
+};
+
+export type ConnectedProps<WidgetProps> = WidgetProps & ConnectorProps;
+
+type ConnectorState = {
+  providedProps: {};
+};
+
 /**
  * Connectors are the HOC used to transform React components
  * into InstantSearch widgets.
@@ -98,13 +108,6 @@ export function createConnectorWithoutContext(
     typeof connectorDesc.getMetadata === 'function' ||
     typeof connectorDesc.transitionState === 'function';
 
-  type ConnectorProps = {
-    contextValue: InstantSearchContext;
-  };
-
-  type ConnectorState = {
-    providedProps: {};
-  };
 
   return (Composed: ReactType) => {
     class Connector extends Component<ConnectorProps, ConnectorState> {
