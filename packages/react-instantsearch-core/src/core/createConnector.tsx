@@ -36,8 +36,8 @@ function needlessUsageWarning(connectorDesc: ConnectorDescription) {
     }
   }
 }
-// @TODO: which are optional here, all?
-type ConnectorDescription = {
+
+export type ConnectorDescription = {
   displayName: string;
   /**
    * a function to filter the local state
@@ -81,6 +81,8 @@ type ConnectorProps = {
   contextValue: InstantSearchContext;
   indexContextValue?: IndexContext;
 };
+
+export type ConnectedProps<WidgetProps> = WidgetProps & ConnectorProps;
 
 type ConnectorState = {
   providedProps: {};
