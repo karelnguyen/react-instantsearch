@@ -15,8 +15,8 @@ export type State = {
   isSearchStalled: boolean;
   searchingForFacetValues: boolean;
 };
+type Listener = () => void;
 
-type Listener = () => any; d
 export default function createStore(initialState: State) {
   let state = initialState;
   const listeners: Listener[] = [];

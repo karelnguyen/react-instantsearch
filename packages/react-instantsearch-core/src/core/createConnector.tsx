@@ -9,7 +9,6 @@ import {
 } from './context';
 import {
   SearchState,
-  SearchResults,
   SearchForFacetValuesResults,
   MetaData,
 } from './createStore';
@@ -42,6 +41,10 @@ function needlessUsageWarning(connectorDesc: ConnectorDescription) {
     }
   }
 }
+
+// @TODO: move this to the helper?
+type SearchParameters = any; // algoliaHelper.SearchParameters
+type SearchResults = any; // algoliaHelper.SearchResults
 
 export type ConnectorDescription = {
   /**
