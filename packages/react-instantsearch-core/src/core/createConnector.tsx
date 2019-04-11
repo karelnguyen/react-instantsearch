@@ -1,5 +1,5 @@
 import { isEqual } from 'lodash';
-import React, { Component, ReactType, ReactPropTypes } from 'react';
+import React, { Component, ReactType, WeakValidationMap } from 'react';
 import { shallowEqual, getDisplayName, removeEmptyKey } from './utils';
 import {
   InstantSearchConsumer,
@@ -133,7 +133,7 @@ export type ConnectorDescription<WidgetProps = {}> = {
   /**
    * PropTypes forwarded to the wrapped component.
    */
-  propTypes?: ReactPropTypes; // @TODO: I can't find a definition for a propTypes object
+  propTypes?: WeakValidationMap<{}>;
 
   defaultProps?: WidgetProps;
 };
