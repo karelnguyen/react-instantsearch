@@ -1,5 +1,5 @@
 import { isEqual } from 'lodash';
-import React, { Component, ReactType } from 'react';
+import React, { Component, ReactType, ReactPropTypes } from 'react';
 import { shallowEqual, getDisplayName, removeEmptyKey } from './utils';
 import {
   InstantSearchConsumer,
@@ -13,7 +13,9 @@ import {
   MetaData,
 } from './createStore';
 
-function needlessUsageWarning(connectorDesc: ConnectorDescription) {
+function needlessUsageWarning<WidgetProps>(
+  connectorDesc: ConnectorDescription<WidgetProps>
+) {
   if (process.env.NODE_ENV === 'development') {
     const onlyGetProvidedPropsUsage = !Object.keys(connectorDesc).find(
       key =>
@@ -46,7 +48,7 @@ function needlessUsageWarning(connectorDesc: ConnectorDescription) {
 type SearchParameters = any; // algoliaHelper.SearchParameters
 type SearchResults = any; // algoliaHelper.SearchResults
 
-export type ConnectorDescription = {
+export type ConnectorDescription<WidgetProps = {}> = {
   /**
    * Name of the Connector, PascalCase, starting With Algolia
    */
@@ -56,7 +58,7 @@ export type ConnectorDescription = {
    * a function to filter the local state
    */
   refine?: (
-    props: ConnectorProps,
+    props: ConnectedProps<WidgetProps>,
     searchState: SearchState,
     ...args: any[]
   ) => any;
@@ -66,20 +68,23 @@ export type ConnectorDescription = {
    */
   getSearchParameters?: (
     searchParameters: SearchParameters,
-    props: ConnectorProps,
+    props: ConnectedProps<WidgetProps>,
     searchState: SearchState
   ) => SearchParameters;
 
   /**
    * metadata of the widget (for current refinements)
    */
-  getMetadata?: (props: ConnectorProps, searchState: SearchState) => any;
+  getMetadata?: (
+    props: ConnectedProps<WidgetProps>,
+    searchState: SearchState
+  ) => any;
 
   /**
    * hook after the state has changed
    */
   transitionState?: (
-    nextProps: ConnectorProps,
+    nextProps: ConnectedProps<WidgetProps>,
     prevSearchState: SearchState,
     nextSearchState: SearchState
   ) => any;
@@ -89,7 +94,7 @@ export type ConnectorDescription = {
    * Receives (props, widgetStates, searchState, metadata) and returns the local state.
    */
   getProvidedProps: (
-    props: ConnectorProps,
+    props: ConnectedProps<WidgetProps>,
     searchState: SearchState,
     searchResults: SearchResults,
     metadata: MetaData,
@@ -104,10 +109,13 @@ export type ConnectorDescription = {
   /**
    * hook when the widget will unmount. Receives (props, searchState) and return a cleaned state.
    */
-  cleanUp?: (props: ConnectorProps, searchState: SearchState) => SearchState;
+  cleanUp?: (
+    props: ConnectedProps<WidgetProps>,
+    searchState: SearchState
+  ) => SearchState;
 
   searchForFacetValues?: (
-    props: ConnectorProps,
+    props: ConnectedProps<WidgetProps>,
     searchState: SearchState,
     ...args: any[]
   ) => any;
@@ -116,8 +124,8 @@ export type ConnectorDescription = {
    * Function that will be called on shouldComponentUpdate of the connector
    */
   shouldComponentUpdate?: (
-    props: ConnectorProps,
-    nextProps: ConnectorProps,
+    props: ConnectedProps<WidgetProps>,
+    nextProps: ConnectedProps<WidgetProps>,
     state: ConnectorState,
     nextState: ConnectorState
   ) => boolean;
@@ -125,19 +133,17 @@ export type ConnectorDescription = {
   /**
    * PropTypes forwarded to the wrapped component.
    */
-  propTypes?: {}; // @TODO: I can't find a definition for a propTypes object
+  propTypes?: ReactPropTypes; // @TODO: I can't find a definition for a propTypes object
 
-  defaultProps?: {};
+  defaultProps?: WidgetProps;
 };
 
-// @TODO: is this the correct way to allow overloading? Might be inferable from propTypes
-// This type probably should be defined within createConnector
-type ConnectorProps<WidgetProps = {}> = {
+type ContextProps = {
   contextValue: InstantSearchContext;
   indexContextValue?: IndexContext;
 };
 
-export type ConnectedProps<WidgetProps> = WidgetProps & ConnectorProps;
+export type ConnectedProps<WidgetProps> = WidgetProps & ContextProps;
 
 type ConnectorState = {
   providedProps: {};
@@ -153,8 +159,8 @@ type ConnectorState = {
  * @return {Connector} a function that wraps a component into
  * an instantsearch connected one.
  */
-export function createConnectorWithoutContext(
-  connectorDesc: ConnectorDescription
+export function createConnectorWithoutContext<WidgetProps>(
+  connectorDesc: ConnectorDescription<WidgetProps>
 ) {
   if (!connectorDesc.displayName) {
     throw new Error(
@@ -162,7 +168,7 @@ export function createConnectorWithoutContext(
     );
   }
 
-  needlessUsageWarning(connectorDesc);
+  needlessUsageWarning<WidgetProps>(connectorDesc);
 
   const isWidget =
     typeof connectorDesc.getSearchParameters === 'function' ||
@@ -170,6 +176,7 @@ export function createConnectorWithoutContext(
     typeof connectorDesc.transitionState === 'function';
 
   return (Composed: ReactType) => {
+    type ConnectorProps = ConnectedProps<WidgetProps>;
     class Connector extends Component<ConnectorProps, ConnectorState> {
       static displayName = `${connectorDesc.displayName}(${getDisplayName(
         Composed
@@ -300,7 +307,7 @@ export function createConnectorWithoutContext(
         }
       }
 
-      getProvidedProps(props) {
+      getProvidedProps(props: ConnectorProps) {
         const {
           widgets,
           results,
@@ -333,7 +340,7 @@ export function createConnectorWithoutContext(
         );
       }
 
-      getSearchParameters(searchParameters) {
+      getSearchParameters(searchParameters: SearchParameters) {
         if (typeof connectorDesc.getSearchParameters === 'function') {
           return connectorDesc.getSearchParameters.call(
             this,
@@ -371,7 +378,7 @@ export function createConnectorWithoutContext(
         return nextWidgetsState;
       }
 
-      refine = (...args) => {
+      refine = (...args: any[]) => {
         this.props.contextValue.onInternalStateUpdate(
           // refine will always be defined here because the prop is only given conditionally
           connectorDesc.refine!.call(
@@ -383,7 +390,7 @@ export function createConnectorWithoutContext(
         );
       };
 
-      createURL = (...args) =>
+      createURL = (...args: any[]) =>
         this.props.contextValue.createHrefForState(
           // refine will always be defined here because the prop is only given conditionally
           connectorDesc.refine!.call(
@@ -394,7 +401,7 @@ export function createConnectorWithoutContext(
           )
         );
 
-      searchForFacetValues = (...args) => {
+      searchForFacetValues = (...args: any[]) => {
         this.props.contextValue.onSearchForFacetValues(
           // searchForFacetValues will always be defined here because the prop is only given conditionally
           connectorDesc.searchForFacetValues!.call(
@@ -439,27 +446,29 @@ export function createConnectorWithoutContext(
   };
 }
 
-const createConnectorWithContext = (connectorDesc: ConnectorDescription) => (
-  Composed: ReactType
-) => {
-  const Connector = createConnectorWithoutContext(connectorDesc)(Composed);
+export default function createConnectorWithContext<WidgetProps = {}>(
+  connectorDesc: ConnectorDescription<WidgetProps>
+) {
+  return (Composed: ReactType) => {
+    const Connector = createConnectorWithoutContext<WidgetProps>(connectorDesc)(
+      Composed
+    );
 
-  // @TODO: does this need a display name?
-  return props => (
-    <InstantSearchConsumer>
-      {contextValue => (
-        <IndexConsumer>
-          {indexContextValue => (
-            <Connector
-              contextValue={contextValue}
-              indexContextValue={indexContextValue}
-              {...props}
-            />
-          )}
-        </IndexConsumer>
-      )}
-    </InstantSearchConsumer>
-  );
-};
-
-export default createConnectorWithContext;
+    // @TODO: does this need a display name?
+    return props => (
+      <InstantSearchConsumer>
+        {contextValue => (
+          <IndexConsumer>
+            {indexContextValue => (
+              <Connector
+                contextValue={contextValue}
+                indexContextValue={indexContextValue}
+                {...props}
+              />
+            )}
+          </IndexConsumer>
+        )}
+      </InstantSearchConsumer>
+    );
+  };
+}
